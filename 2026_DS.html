@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シルエットクイズ</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 30px 16px;
+      font-family: sans-serif;
+      background: #f5f2eb;
+      color: #292929;
+      text-align: center;
+    }
+
+    .quiz {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 28px 20px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px #00000012;
+    }
+
+    h1 {
+      font-size: 26px;
+      margin-top: 0;
+    }
+
+    #progress {
+      color: #777;
+      font-size: 14px;
+    }
+
+    #silhouette {
+      font-size: 150px;
+      line-height: 1.5;
+      filter: brightness(0);
+      margin: 10px 0;
+    }
+
+    #question {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    #choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .choice {
+      padding: 16px 8px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      background: white;
+      font-size: 17px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .choice:hover {
+      border-color: #d65b45;
+      background: #fff5f1;
+    }
+
+    .choice:disabled {
+      cursor: default;
+      color: #292929;
+    }
+
+    #feedback {
+      min-height: 32px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #next, #restart {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 10px;
+      background: #d65b45;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #next:disabled {
+      background: #ccc;
+      cursor: default;
+    }
+
+    #result {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 24px 0;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="quiz">
+    <h1>シルエットクイズ</h1>
+
+    <div id="game">
+      <p id="progress"></p>
+      <p id="question">このシルエットは何？</p>
+
+      <div id="silhouette" aria-label="動物のシルエット">
+        🐱
+      </div>
+
+      <div id="choices"></div>
+
+      <p id="feedback" aria-live="polite"></p>
+
+      <button id="next" disabled>次の問題へ →</button>
+    </div>
+
+    <div id="finish" hidden>
+      <h2>クイズ終了！</h2>
+      <p id="result"></p>
+      <button id="restart">もう一度遊ぶ</button>
+    </div>
+  </main>
+
+  <script>
+    // クイズの問題データ
+    const questions = [
+      {
+        silhouette: "🐱",
+        answer: "ネコ",
+        choices: ["ネコ", "ウサギ", "キツネ", "イヌ"]
+      },
+      {
+        silhouette: "🐰",
+        answer: "ウサギ",
+        choices: ["ネズミ", "ウサギ", "ネコ", "リス"]
+      },
+      {
+        silhouette: "🦊",
+        answer: "キツネ",
+        choices: ["オオカミ", "イヌ", "キツネ", "クマ"]
+      },
+      {
+        silhouette: "🐘",
+        answer: "ゾウ",
+        choices: ["サイ", "カバ", "ウシ", "ゾウ"]
+      },
+      {
+        silhouette: "🦒",
+        answer: "キリン",
+        choices: ["シマウマ", "キリン", "ウマ", "シカ"]
+      }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    const progress = document.getElementById("progress");
+    const silhouette = document.getElementById("silhouette");
+    const choices = document.getElementById("choices");
+    const feedback = document.getElementById("feedback");
+    const next = document.getElementById("next");
+    const game = document.getElementById("game");
+    const finish = document.getElementById("finish");
+    const result = document.getElementById("result");
+
+    // 問題を画面に表示する
+    function showQuestion() {
+      answered = false;
+
+      const q = questions[current];
+
+      progress.textContent =
+        `第 ${current + 1} 問 / 全 ${questions.length} 問`;
+
+      silhouette.textContent = q.silhouette;
+      feedback.textContent = "";
+      choices.innerHTML = "";
+      next.disabled = true;
+
+      // 選択肢を作る
+      q.choices.forEach(choice => {
+        const button = document.createElement("button");
+
+        button.className = "choice";
+        button.textContent = choice;
+
+        button.addEventListener("click", () => {
+          checkAnswer(choice, button);
+        });
+
+        choices.appendChild(button);
+      });
+    }
+
+    // 回答を判定する
+    function checkAnswer(choice, selectedButton) {
+      if (answered) return;
+      answered = true;
+
+      const q = questions[current];
+      const buttons = choices.querySelectorAll("button");
+
+      buttons.forEach(button => {
+        button.disabled = true;
+
+        if (button.textContent === q.answer) {
+          button.style.borderColor = "#399764";
+          button.style.background = "#e7f7ed";
+        }
+      });
+
+      if (choice === q.answer) {
+        score++;
+        feedback.textContent = "正解！ 🎉";
+        feedback.style.color = "#24834b";
+      } else {
+        feedback.textContent = `残念！ 正解は「${q.answer}」`;
+        feedback.style.color = "#d04444";
+        selectedButton.style.borderColor = "#d04444";
+      }
+
+      next.disabled = false;
+      next.textContent =
+        current === questions.length - 1
+          ? "結果を見る →"
+          : "次の問題へ →";
+    }
+
+    // 次の問題へ進む
+    next.addEventListener("click", () => {
+      if (!answered) return;
+
+      current++;
+
+      if (current < questions.length) {
+        showQuestion();
+      } else {
+        showResult();
+      }
+    });
+
+    // 結果を表示する
+    function showResult() {
+      game.hidden = true;
+      finish.hidden = false;
+
+      result.textContent =
+        `${questions.length}問中 ${score}問正解！`;
+    }
+
+    // 最初から遊ぶ
+    document.getElementById("restart").addEventListener("click", () => {
+      current = 0;
+      score = 0;
+
+      finish.hidden = true;
+      game.hidden = false;
+
+      showQuestion();
+    });
+
+    // 最初の問題を表示
+    showQuestion();
+  </script>
+</body>
+</html>
